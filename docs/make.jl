@@ -23,4 +23,5 @@ makedocs(;
 deploydocs(;
     repo="github.com/drbergman/PhysiCellECMCreator.jl",
     devbranch="development",
+    push_preview=true,
 )
