@@ -64,8 +64,11 @@ function parseLayer!(df::AbstractDataFrame, layer::XMLElement, config_dict::Dict
     updateDataFrame!(df, layer_df; allow_overwrite=true)
 end
 
+supportedPatchTypes() = ["everywhere", "ellipse", "elliptical_disc", "ellipse_with_shell"]
+
 function parsePatchCollection!(layer_df::AbstractDataFrame, patch_collection::XMLElement, config_dict::Dict{String,Float64})
     patch_type = attribute(patch_collection, "type")
+    @assert patch_type in supportedPatchTypes() "Patch type $patch_type not recognized.\nRecognized patch types are: $(supportedPatchTypes())"
     if patch_type == "everywhere"
         patch_parser = parseEverywherePatch
     elseif patch_type == "ellipse"
@@ -74,8 +77,6 @@ function parsePatchCollection!(layer_df::AbstractDataFrame, patch_collection::XM
         patch_parser = parseEllipticalDiscPatch
     elseif patch_type == "ellipse_with_shell"
         patch_parser = parseEllipseWithShellPatch
-    else
-        throw(ArgumentError("Patch type $patch_type not recognized."))
     end
     for patch in child_elements(patch_collection)
         patch_df = patch_parser(patch, config_dict)
