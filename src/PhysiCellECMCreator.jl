@@ -1,8 +1,10 @@
 module PhysiCellECMCreator
 
-using Optimization, OptimizationOptimJL, Polynomials, LightXML, CSV, DataFrames
+using Optimization, OptimizationOptimJL, Polynomials, LightXML, CSV, DataFrames, Compat
 
 export generateICECM, createICECMXMLTemplate
+
+@compat public supportedPatchTypes, supportedPatchTextElements
 
 """
     generateICECM(path_to_ic_ecm_xml::String, path_to_ic_ecm_csv::String, config_dict::Dict{String,Float64})
@@ -64,46 +66,54 @@ function parseLayer!(df::AbstractDataFrame, layer::XMLElement, config_dict::Dict
     updateDataFrame!(df, layer_df; allow_overwrite=true)
 end
 
+abstract type ECMPatch end
+struct EverywherePatch <: ECMPatch end
+struct EllipsePatch <: ECMPatch end
+struct EllipticalDiscPatch <: ECMPatch end
+struct EllipseWithShellPatch <: ECMPatch end
+
 supportedPatchTypes() = ["everywhere", "ellipse", "elliptical_disc", "ellipse_with_shell"]
 
+supportedPatchTextElements(::Type{EverywherePatch}) = ["density", "orientation", "anisotropy"]
+supportedPatchTextElements(::Type{EllipsePatch}) = ["x0", "y0", "a", "b", "rotation", "thickness", "density", "orientation", "anisotropy"]
+supportedPatchTextElements(::Type{EllipticalDiscPatch}) = ["x0", "y0", "a", "b", "rotation", "density", "orientation", "anisotropy"]
+supportedPatchTextElements(::Type{EllipseWithShellPatch}) = ["x0", "y0", "a", "b", "rotation", "thickness"]
+
+supportedPatchTextElements(patch_type::String) = supportedPatchTextElements(patchType(patch_type))
+
+patchType(::Val{:everywhere}) = EverywherePatch
+patchType(::Val{:ellipse}) = EllipsePatch
+patchType(::Val{:elliptical_disc}) = EllipticalDiscPatch
+patchType(::Val{:ellipse_with_shell}) = EllipseWithShellPatch
+
+function patchType(s::AbstractString)
+    @assert s in supportedPatchTypes() "Patch type $(s) is not supported. Supported types are: $(supportedPatchTypes())"
+    return patchType(Val(Symbol(s)))
+end
+
 function parsePatchCollection!(layer_df::AbstractDataFrame, patch_collection::XMLElement, config_dict::Dict{String,Float64})
-    patch_type = attribute(patch_collection, "type")
-    @assert patch_type in supportedPatchTypes() "Patch type $patch_type not recognized.\nRecognized patch types are: $(supportedPatchTypes())"
-    if patch_type == "everywhere"
-        patch_parser = parseEverywherePatch
-    elseif patch_type == "ellipse"
-        patch_parser = parseEllipsePatch
-    elseif patch_type == "elliptical_disc"
-        patch_parser = parseEllipticalDiscPatch
-    elseif patch_type == "ellipse_with_shell"
-        patch_parser = parseEllipseWithShellPatch
-    end
+    T = attribute(patch_collection, "type") |> patchType
     for patch in child_elements(patch_collection)
-        patch_df = patch_parser(patch, config_dict)
+        patch_df = parsePatch(T, patch, config_dict)
         updateDataFrame!(layer_df, patch_df; allow_overwrite=false)
     end
 end
 
-function parseEverywherePatch(patch::XMLElement, config_dict::Dict{String,Float64})
+function parsePatch(::Type{EverywherePatch}, patch::XMLElement, config_dict::Dict{String,Float64})
     df = initializeDataFrame(config_dict)
-    parseEverywherePatch!(df, patch)
-    return df
-end
-
-function parseEverywherePatch!(df::AbstractDataFrame, patch::XMLElement)
     density, orientation, anisotropy = parseECMFeatures(patch)
     df.ecm_density .= density
-    if orientation == "random"
+    @assert orientation ∈ ["random"] "Orientation $orientation not recognized for an everywhere ECM patch.\nRecognized orientations are: `random`"
+    if orientation == "random" #! the only one for now, but can add more elseif later
         theta = 2 * pi * rand(length(df.x))
         df.ecm_orientation_x .= anisotropy * cos.(theta)
         df.ecm_orientation_y .= anisotropy * sin.(theta)
-    else
-        throw(ArgumentError("Orientation $orientation not recognized for an everywhere ECM patch.\nRecognized orientations are: `random`"))
     end
     df.is_missing .= false
+    return df
 end
 
-function parseEllipsePatch(patch::XMLElement, config_dict::Dict{String,Float64})
+function parsePatch(::Type{EllipsePatch}, patch::XMLElement, config_dict::Dict{String,Float64})
     df = initializeDataFrame(config_dict)
     parseEllipsePatch!(df, patch)
     return df
@@ -120,6 +130,7 @@ function parseEllipsePatch!(df::AbstractDataFrame, patch::XMLElement; check_coor
     n = sum(in_ellipse)
     density, orientation, anisotropy = parseECMFeatures(patch)
     df.ecm_density[in_ellipse] .= density
+    @assert orientation ∈ ["random", "parallel", "perpendicular"] "Orientation $orientation not recognized for an ellipse ECM patch.\nRecognized orientations are: `random`, `parallel`, `perpendicular`"
     if orientation == "random"
         theta = 2 * pi * rand(n)
         df.ecm_orientation_x[in_ellipse] .= anisotropy * cos.(theta)
@@ -132,13 +143,11 @@ function parseEllipsePatch!(df::AbstractDataFrame, patch::XMLElement; check_coor
         all_orientations = [anisotropy * perpendicularFiberOrientation(e, x, y) for (x, y) in zip(df.x[in_ellipse], df.y[in_ellipse])]
         df.ecm_orientation_x[in_ellipse] .= [v[1] for v in all_orientations]
         df.ecm_orientation_y[in_ellipse] .= [v[2] for v in all_orientations]
-    else
-        throw(ArgumentError("Orientation $orientation not recognized for an ellipse ECM patch.\nRecognized orientations are: `random`, `parallel`, `perpendicular`"))
     end
     df.is_missing[in_ellipse] .= false
 end
 
-function parseEllipticalDiscPatch(patch::XMLElement, config_dict::Dict{String,Float64})
+function parsePatch(::Type{EllipticalDiscPatch}, patch::XMLElement, config_dict::Dict{String,Float64})
     df = initializeDataFrame(config_dict)
     parseEllipticalDiscPatch!(df, patch)
     return df
@@ -155,26 +164,23 @@ function parseEllipticalDiscPatch!(df::AbstractDataFrame, patch::XMLElement; che
     n = sum(in_disc)
     density, orientation, anisotropy = parseECMFeatures(patch)
     df.ecm_density[in_disc] .= density
-    if orientation == "random"
+    @assert orientation ∈ ["random"] "Orientation $orientation not recognized for an elliptical disc ECM patch.\nRecognized orientations are: `random`"
+    if orientation == "random" #! the only one for now, but can add more elseif later
         theta = 2 * pi * rand(n)
         df.ecm_orientation_x[in_disc] .= anisotropy * cos.(theta)
         df.ecm_orientation_y[in_disc] .= anisotropy * sin.(theta)
-    else
-        throw(ArgumentError("Orientation $orientation not recognized for an elliptical disc ECM patch.\nRecognized orientations are: `random`"))
     end
     df.is_missing[in_disc] .= false
 end
 
-function parseEllipseWithShellPatch(patch::XMLElement, config_dict::Dict{String,Float64})
+function parsePatch(::Type{EllipseWithShellPatch}, patch::XMLElement, config_dict::Dict{String,Float64})
     df = initializeDataFrame(config_dict)
 
     e = parseEllipseParameters(patch)
     positions = [positionRelativeToEllipse(e, x, y) for (x, y) in zip(df.x, df.y)]
 
     interior_element = find_element(patch, "interior")
-    if isnothing(interior_element)
-        throw(ErrorException("An interior element must be specified for an ellipse with shell ECM patch.\nIf only setting the shell of the ellipse, use `ellipse` instead of `ellipse_with_shell`."))
-    end
+    @assert !isnothing(interior_element) "An interior element must be specified for an ellipse with shell ECM patch.\nIf only setting the shell of the ellipse, use `ellipse` instead of `ellipse_with_shell`."
     for (tag, content_) in [("x0", e.center[1]), ("y0", e.center[2]), ("a", e.axes[1]), ("b", e.axes[2]), ("rotation", e.rotation)]
         new_element = new_child(interior_element, tag)
         set_content(new_element, string(content_))
@@ -183,9 +189,7 @@ function parseEllipseWithShellPatch(patch::XMLElement, config_dict::Dict{String,
     parseEllipticalDiscPatch!(interior_df, interior_element; check_coords=false)
 
     shell_element = find_element(patch, "shell")
-    if isnothing(shell_element)
-        throw(ErrorException("A shell element must be specified for an ellipse with shell ECM patch.\nIf only setting the interior of the ellipse, use `elliptical_disc` instead of `ellipse_with_shell`."))
-    end
+    @assert !isnothing(shell_element) "A shell element must be specified for an ellipse with shell ECM patch.\nIf only setting the interior of the ellipse, use `elliptical_disc` instead of `ellipse_with_shell`."
     for (tag, content_) in [("x0", e.center[1]), ("y0", e.center[2]), ("a", e.axes[1] + e.thickness), ("b", e.axes[2] + e.thickness), ("rotation", e.rotation), ("thickness", e.thickness)]
         new_element = new_child(shell_element, tag)
         set_content(new_element, string(content_))
@@ -199,16 +203,15 @@ function parseEllipseWithShellPatch(patch::XMLElement, config_dict::Dict{String,
     end
 
     # optional exterior element defining ECM outside the ellipse with shell
-    in_exterior = positions.==:outside
+    in_exterior = positions .== :outside
     n = sum(in_exterior)
     density, orientation, anisotropy = parseECMFeatures(exterior_element)
     df.ecm_density[in_exterior] .= density
-    if orientation == "random"
+    @assert orientation ∈ ["random"] "Orientation $orientation not recognized for the exterior an ellipse with shell ECM patch.\nRecognized orientations are: `random`"
+    if orientation == "random" #! the only one for now, but can add more elseif later
         theta = 2 * pi * rand(n)
         df.ecm_orientation_x[in_exterior] .= anisotropy * cos.(theta)
         df.ecm_orientation_y[in_exterior] .= anisotropy * sin.(theta)
-    else
-        throw(ArgumentError("Orientation $orientation not recognized for the exterior an ellipse with shell ECM patch.\nRecognized orientations are: `random`"))
     end
     df.is_missing[in_exterior] .= false
     return df
@@ -359,7 +362,8 @@ function perpendicularFiberOrientation(e::EllipticalECM, x::Real, y::Real)
 end
 
 function parallelFiberOrientation(e::EllipticalECM, x::Real, y::Real; method::Symbol=:rotate_perpendicular)
-    if method==:solve_polynomial
+    @assert method in [:solve_polynomial, :rotate_perpendicular] "Method $method not recognized. Use :solve_polynomial or :rotate_perpendicular."
+    if method == :solve_polynomial
         @warn("ECMCreator: the :solve_polynomial method seems to have a bug. Better to use :rotate_perpendicular at this time.")
         x, y = toEllipticalCoordinates(e, x, y)
         a, b = e.axes
@@ -374,10 +378,8 @@ function parallelFiberOrientation(e::EllipticalECM, x::Real, y::Real; method::Sy
 
         ratio = (a + r[1]) / (b + r[1])
         return e.M_from_elliptical_coords * [-ratio * y, ratio * x]
-    elseif method==:rotate_perpendicular
-        return [0;1;;-1;0] * perpendicularFiberOrientation(e, x, y) # rotate 90 degrees counterclockwise
-    else
-        throw(ArgumentError("Method $method not recognized."))
+    elseif method == :rotate_perpendicular
+        return [0; 1;; -1; 0] * perpendicularFiberOrientation(e, x, y) # rotate 90 degrees counterclockwise
     end
 end
 
