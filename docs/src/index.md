@@ -4,7 +4,7 @@ CurrentModule = PhysiCellECMCreator
 
 # PhysiCellECMCreator
 
-Documentation for [PhysiCellECMCreator](https://github.com/drbergman/PhysiCellECMCreator.jl).
+Documentation for [PhysiCellECMCreator](https://github.com/drbergman-lab/PhysiCellECMCreator.jl).
 
 ```@index
 ```
