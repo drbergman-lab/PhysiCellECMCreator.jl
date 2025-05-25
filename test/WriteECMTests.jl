@@ -7,3 +7,5 @@ generateICECM("test/ecm.xml", "test.csv", config_dict)
 
 createICECMXMLTemplate("test_monolayer"; monolayer=true)
 generateICECM("test_monolayer/ecm.xml", "test_monolayer.csv", config_dict)
+
+PhysiCellECMCreator.supportedPatchTextElements.(PhysiCellECMCreator.supportedPatchTypes())
