@@ -8,7 +8,7 @@ makedocs(;
     authors="Daniel Bergman <danielrbergman@gmail.com> and contributors",
     sitename="PhysiCellECMCreator.jl",
     format=Documenter.HTML(;
-        canonical="https://drbergman.github.io/PhysiCellECMCreator.jl",
+        canonical="https://drbergman-lab.github.io/PhysiCellECMCreator.jl",
         edit_link="main",
         assets=String[],
     ),
@@ -21,7 +21,7 @@ makedocs(;
 )
 
 deploydocs(;
-    repo="github.com/drbergman/PhysiCellECMCreator.jl",
+    repo="github.com/drbergman-lab/PhysiCellECMCreator.jl",
     devbranch="development",
     push_preview=true,
 )
