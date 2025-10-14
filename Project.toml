@@ -1,6 +1,6 @@
 name = "PhysiCellECMCreator"
 uuid = "515ed340-d2f8-4e13-b70e-c9ebab3e992f"
-version = "0.0.7"
+version = "0.0.8"
 authors = ["Daniel Bergman <danielrbergman@gmail.com> and contributors"]
 
 [deps]
