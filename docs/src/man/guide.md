@@ -17,8 +17,9 @@ Within each layer, patches cannot overlap.
 
 ## Patches
 Each layer can have multiple patches.
-The patches can be of different types, selected from `everywhere`, `ellipse`, and `elliptical_disc`.
+The patches can be of different types, selected from `everywhere`, `ellipse`, `elliptical_disc`, and `ellipse_with_shell`.
 See [Example XML](@ref) for an example of each type.
+For each patch type, a `patch_collection` element is used to define the patches.
 
 ### `everywhere`
 The `everywhere` type is used to set the ECM values for the entire domain.
@@ -27,11 +28,13 @@ You may set the `density`, `orientation`, and `anisotropy` for the entire domain
 The only `orientation` option is `random`.
 A sample `everywhere` patch is shown below.
 ```xml
-<patch ID="1" type="everywhere">
-    <density>0.4</density>
-    <orientation>random</orientation>
-    <anisotropy>0.3</anisotropy>
-</patch>
+<patch_collection type="everywhere">
+    <patch ID="1">
+        <density>0.4</density>
+        <orientation>random</orientation>
+        <anisotropy>0.3</anisotropy>
+    </patch>
+</patch_collection>
 ```
 
 ### `ellipse`
@@ -65,17 +68,19 @@ For `parallel`, the orientation will follow the shape of the ellipse.
 For `perpendicular`, the orientation will be perpendicular to the shape of the ellipse.
 A sample `ellipse` patch is shown below.
 ```xml
-<patch ID="1" type="ellipse">
-    <density>0.5</density>
-    <orientation>parallel</orientation>
-    <anisotropy>1.0</anisotropy>
-    <x0>150.0</x0>
-    <y0>200.0</y0>
-    <a>100.0</a>
-    <b>80.0</b>
-    <rotation units="rad">2pi/3</rotation>
-    <thickness>100.0</thickness>
-</patch>
+<patch_collection type="ellipse">
+    <patch ID="1">
+        <density>0.5</density>
+        <orientation>parallel</orientation>
+        <anisotropy>1.0</anisotropy>
+        <x0>150.0</x0>
+        <y0>200.0</y0>
+        <a>100.0</a>
+        <b>80.0</b>
+        <rotation units="rad">2pi/3</rotation>
+        <thickness>100.0</thickness>
+    </patch>
+</patch_collection>
 ```
 
 ### `elliptical_disc`
@@ -85,16 +90,18 @@ The same parameters as the `ellipse` patch are used, except the `thickness` para
 The only `orientation` option is `random`.
 A sample `elliptical_disc` patch is shown below.
 ```xml
-<patch ID="2" type="elliptical_disc">
-    <density>0.3</density>
-    <orientation>random</orientation>
-    <anisotropy>0.3</anisotropy>
-    <x0>150.0</x0>
-    <y0>200.0</y0>
-    <a>100.0</a>
-    <b>80.0</b>
-    <rotation units="rad">2pi/3</rotation>
-</patch>
+<patch_collection type="elliptical_disc">
+    <patch ID="2">
+        <density>0.3</density>
+        <orientation>random</orientation>
+        <anisotropy>0.3</anisotropy>
+        <x0>150.0</x0>
+        <y0>200.0</y0>
+        <a>100.0</a>
+        <b>80.0</b>
+        <rotation units="rad">2pi/3</rotation>
+    </patch>
+</patch_collection>
 ```
 
 ### `ellipse_with_shell`
@@ -105,24 +112,26 @@ The same orientation restrictions for `ellipse` apply to the `shell`.
 Similarly, `elliptical_disc` orientation restrictions apply to the `interior`.
 A sample `ellipse_with_shell` patch is shown below.
 ```xml
-<patch ID="3" type="ellipse_with_shell">
-    <x0>150.0</x0>
-    <y0>200.0</y0>
-    <a>100.0</a>
-    <b>80.0</b>
-    <rotation units="rad">2pi/3</rotation>
-    <thickness units="px">100.0</thickness>
-    <interior>
-        <density>0.5</density>
-        <orientation>random</orientation>
-        <anisotropy>1.0</anisotropy>
-    </interior>
-    <shell>
-        <density>0.3</density>
-        <orientation>parallel</orientation>
-        <anisotropy>0.3</anisotropy>
-    </shell>
-</patch>
+<patch_collection type="ellipse_with_shell">
+    <patch ID="3">
+        <x0>150.0</x0>
+        <y0>200.0</y0>
+        <a>100.0</a>
+        <b>80.0</b>
+        <rotation units="rad">2pi/3</rotation>
+        <thickness units="px">100.0</thickness>
+        <interior>
+            <density>0.5</density>
+            <orientation>random</orientation>
+            <anisotropy>1.0</anisotropy>
+        </interior>
+        <shell>
+            <density>0.3</density>
+            <orientation>parallel</orientation>
+            <anisotropy>0.3</anisotropy>
+        </shell>
+    </patch>
+</patch_collection>
 ```
 An additional `exterior` element can be added analagously to the `interior` and `shell` elements.
 This will define the ECM values outside the shell.
