@@ -1,6 +1,6 @@
 name = "PhysiCellECMCreator"
 uuid = "515ed340-d2f8-4e13-b70e-c9ebab3e992f"
-version = "0.0.7"
+version = "0.0.8"
 authors = ["Daniel Bergman <danielrbergman@gmail.com> and contributors"]
 
 [deps]
@@ -8,18 +8,22 @@ CSV = "336ed68f-0bac-5ca0-87d4-7b16caf5d00b"
 Compat = "34da2185-b29b-5c13-b0c7-acf172513d20"
 DataFrames = "a93c6f00-e57d-5684-b7b6-d8193f3e46c0"
 LightXML = "9c8b4983-aa76-5018-a973-4c85ecc9e179"
+Optim = "429524aa-4258-5aef-a3af-852621145aeb"
 Optimization = "7f7a1694-90dd-40f0-9382-eb1efda571ba"
 OptimizationOptimJL = "36348300-93cb-4f02-beb5-3c3902f8871e"
 Polynomials = "f27b6e38-b328-58d1-80ce-0feddd5e7a45"
+SciMLBase = "0bca4576-84f4-4d90-8ffe-ffa030f20462"
 
 [compat]
 CSV = "0.10.15"
 Compat = "4.16.0"
 DataFrames = "1.7.0"
 LightXML = "0.9.1"
+Optim = "1.13.2"
 Optimization = "5"
 OptimizationOptimJL = "0.4.6"
 Polynomials = "4.0.13"
+SciMLBase = "< 2.121.1, 2.121.2"
 julia = "1.10"
 
 [extras]
