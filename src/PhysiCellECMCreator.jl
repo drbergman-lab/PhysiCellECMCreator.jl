@@ -1,6 +1,6 @@
 module PhysiCellECMCreator
 
-using Optimization, OptimizationOptimJL, Polynomials, LightXML, CSV, DataFrames, Compat
+using Optim, Optimization, OptimizationOptimJL, Polynomials, LightXML, CSV, DataFrames, Compat
 
 export generateICECM, createICECMXMLTemplate
 
@@ -353,9 +353,9 @@ function perpendicularFiberOrientation(e::EllipticalECM, x::Real, y::Real)
     objfn(theta, x, y, a, b) = (x - a * cos(theta))^2 + (y - b * sin(theta))^2
     objfn(theta, p) = objfn(theta[1], p...)
     optf = OptimizationFunction(objfn, Optimization.AutoForwardDiff())
-    prob = OptimizationProblem(optf, [atan(y, x)], [x; y; a; b], lb=[-pi], ub=[pi])
-    sol = solve(prob, BFGS())
-    optimal_theta = sol.u[1]
+    prob = OptimizationProblem(optf, [atan(y, x)], [x; y; a; b])
+    sol = solve(prob, Optim.BFGS())
+    optimal_theta = sol.u[1] % (2 * pi)
     vec = [x, y] - [a * cos(optimal_theta), b * sin(optimal_theta)]
     vec ./= sqrt(vec[1]^2 + vec[2]^2)
     return e.M_from_elliptical_coords * vec
