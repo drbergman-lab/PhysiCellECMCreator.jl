@@ -14,7 +14,7 @@ OptimizationOptimJL = "36348300-93cb-4f02-beb5-3c3902f8871e"
 Polynomials = "f27b6e38-b328-58d1-80ce-0feddd5e7a45"
 
 [compat]
-CSV = "0.10.15"
+CSV = "0.10.15, 1"
 Compat = "4.16.0"
 DataFrames = "1.7.0"
 LightXML = "0.9.1"
