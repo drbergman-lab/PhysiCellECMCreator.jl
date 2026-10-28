@@ -1,6 +1,7 @@
 module PhysiCellECMCreator
 
 using Optim, Optimization, OptimizationOptimJL, Polynomials, LightXML, CSV, DataFrames, Compat
+import ForwardDiff
 
 export generateICECM, createICECMXMLTemplate
 
